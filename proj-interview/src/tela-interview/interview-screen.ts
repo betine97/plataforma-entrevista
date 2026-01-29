@@ -15,6 +15,7 @@ import '../../../function-core/src/frontend/sphere/ai-sphere';
 @customElement('interview-screen')
 export class InterviewScreen extends LitElement {
   @property({type: Object}) config: any;
+  @property({type: String}) interviewerInstructions = '';
   
   @state() private isRecording = false;
   @state() private error = '';
@@ -208,7 +209,8 @@ export class InterviewScreen extends LitElement {
       },
     });
     
-    await this.connector.initSession();
+    // Passa as instruções do entrevistador para o conector
+    await this.connector.initSession(this.interviewerInstructions);
     
     // Define o tempo inicial mas não inicia o timer ainda
     this.timeRemaining = 10 * 60; // 10 minutos em segundos

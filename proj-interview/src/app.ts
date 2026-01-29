@@ -8,13 +8,14 @@ import {customElement, state} from 'lit/decorators.js';
 import './tela-config/config-screen';
 import './tela-interview/interview-screen';
 import './tela-perfil/profile-screen';
+import './tela-rh/rh-screen';
 
 /**
  * App principal - gerencia navegação entre telas
  */
 @customElement('interview-app')
 export class InterviewApp extends LitElement {
-  @state() private currentScreen: 'config' | 'interview' | 'profile' = 'config';
+  @state() private currentScreen: 'config' | 'interview' | 'profile' | 'rh' = 'config';
   @state() private interviewConfig: any = null;
 
   static styles = css`
@@ -84,6 +85,11 @@ export class InterviewApp extends LitElement {
             @click=${() => this.currentScreen = 'profile'}>
             Perfil
           </button>
+          <button 
+            class="nav-button ${this.currentScreen === 'rh' ? 'active' : ''}"
+            @click=${() => this.currentScreen = 'rh'}>
+            RH
+          </button>
         </div>
       ` : ''}
 
@@ -97,9 +103,14 @@ export class InterviewApp extends LitElement {
         <profile-screen></profile-screen>
       ` : ''}
 
+      ${this.currentScreen === 'rh' ? html`
+        <rh-screen></rh-screen>
+      ` : ''}
+
       ${this.currentScreen === 'interview' ? html`
         <interview-screen 
           .config=${this.interviewConfig}
+          .interviewerInstructions=${this.interviewConfig?.interviewerInstructions || ''}
           @back-to-config=${this.handleBackToConfig}>
         </interview-screen>
       ` : ''}

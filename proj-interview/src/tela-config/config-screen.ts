@@ -6,6 +6,7 @@
 import {LitElement, css, html} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
 import {analyzeJobDescription, type JobDetails} from './job-analyzer.js';
+import {generateInterviewerInstructions, type InterviewConfig} from './interviewer-instructions-generator.js';
 
 /**
  * Tela de configuração da entrevista
@@ -23,6 +24,7 @@ export class ConfigScreen extends LitElement {
   @state() private requiredSkills = '';
   @state() private mandatoryRequirements = '';
   @state() private desirableTools = '';
+  @state() private interviewerInstructions = '';
 
   private async nextStep() {
     // Se estiver na etapa 2 (descrição da vaga), processar e analisar
@@ -538,26 +540,68 @@ export class ConfigScreen extends LitElement {
     }
   `;
 
-  private handleSubmit(e: Event) {
+  private async handleSubmit(e: Event) {
     e.preventDefault();
     
     if (!this.interviewer || !this.personality || !this.profileName || !this.seniority) {
       return;
     }
 
-    this.dispatchEvent(new CustomEvent('start-interview', {
-      detail: {
-        interviewer: this.interviewer,
-        personality: this.personality,
-        jobDescription: this.jobDescription,
+    // Mostrar loading enquanto gera as instruções
+    this.isProcessing = true;
+
+    try {
+      // Gerar instruções para o entrevistador IA
+      const config: InterviewConfig = {
+        interviewer: this.interviewer as 'tech-lead' | 'product-manager' | 'rh',
+        personality: this.personality as 'calm' | 'balanced' | 'pressure',
         profileName: this.profileName,
         seniority: this.seniority,
         experienceYears: this.experienceYears,
         requiredSkills: this.requiredSkills,
         mandatoryRequirements: this.mandatoryRequirements,
-        desirableTools: this.desirableTools
-      }
-    }));
+        desirableTools: this.desirableTools,
+        jobDescription: this.jobDescription
+      };
+
+      this.interviewerInstructions = await generateInterviewerInstructions(config);
+
+      // Fazer download automático do arquivo .md
+      this.downloadInstructionsFile(this.interviewerInstructions);
+
+      // Disparar evento com as instruções
+      this.dispatchEvent(new CustomEvent('start-interview', {
+        detail: {
+          interviewer: this.interviewer,
+          personality: this.personality,
+          jobDescription: this.jobDescription,
+          profileName: this.profileName,
+          seniority: this.seniority,
+          experienceYears: this.experienceYears,
+          requiredSkills: this.requiredSkills,
+          mandatoryRequirements: this.mandatoryRequirements,
+          desirableTools: this.desirableTools,
+          interviewerInstructions: this.interviewerInstructions
+        }
+      }));
+    } catch (error) {
+      console.error('Erro ao gerar instruções:', error);
+      alert('Erro ao preparar a entrevista. Tente novamente.');
+    } finally {
+      this.isProcessing = false;
+    }
+  }
+
+  private downloadInstructionsFile(content: string) {
+    const blob = new Blob([content], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `interviewer-instructions-${Date.now()}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   private get canProceed(): boolean {
@@ -590,7 +634,7 @@ export class ConfigScreen extends LitElement {
             ${this.isProcessing ? html`
               <div class="loading-container">
                 <div class="loading-spinner"></div>
-                <div class="loading-text">Processando informações</div>
+                <div class="loading-text">Preparando entrevista</div>
                 <div class="loading-dots">
                   <div class="loading-dot"></div>
                   <div class="loading-dot"></div>
